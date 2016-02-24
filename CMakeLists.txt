@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
+  rosbag
 )
 find_package(OpenCV REQUIRED)
 
@@ -16,6 +17,8 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
+
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 MESSAGE("System is: " ${CMAKE_SYSTEM_PROCESSOR})
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")

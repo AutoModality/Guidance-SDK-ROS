@@ -17,6 +17,7 @@
 
 #include "DJI_guidance.h"
 #include "DJI_utility.h"
+#include <bag_logger.h>
 
 #include <geometry_msgs/TransformStamped.h> //IMU
 #include <geometry_msgs/Vector3Stamped.h> //velocity

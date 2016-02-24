@@ -18,6 +18,9 @@
 #include <geometry_msgs/TransformStamped.h> //IMU
 #include <geometry_msgs/Vector3Stamped.h> //velocity
 #include <sensor_msgs/LaserScan.h> //obstacle distance && ultrasonic
+#include <bag_logger.h>
+
+BagLogger *BagLogger::s_instance_ = 0;
 
 ros::Subscriber left_image_sub;
 ros::Subscriber right_image_sub;
@@ -34,6 +37,7 @@ using namespace cv;
 /* left greyscale image */
 void left_image_callback(const sensor_msgs::ImageConstPtr& left_img)
 {
+    LOG_MSG("/guidance/left_image", left_img, 3);
     cv_bridge::CvImagePtr cv_ptr;
     try {
         cv_ptr = cv_bridge::toCvCopy(left_img, sensor_msgs::image_encodings::MONO8);
@@ -50,6 +54,7 @@ void left_image_callback(const sensor_msgs::ImageConstPtr& left_img)
 /* right greyscale image */
 void right_image_callback(const sensor_msgs::ImageConstPtr& right_img)
 {
+    LOG_MSG("/guidance/right_image", right_img, 3);
     cv_bridge::CvImagePtr cv_ptr;
     try {
         cv_ptr = cv_bridge::toCvCopy(right_img, sensor_msgs::image_encodings::MONO8);
@@ -66,6 +71,7 @@ void right_image_callback(const sensor_msgs::ImageConstPtr& right_img)
 /* depth greyscale image */
 void depth_image_callback(const sensor_msgs::ImageConstPtr& depth_img)
 {
+    LOG_MSG("/guidance/depth_image", depth_img, 2);
     cv_bridge::CvImagePtr cv_ptr;
     try {
         cv_ptr = cv_bridge::toCvCopy(depth_img, sensor_msgs::image_encodings::MONO16);
@@ -84,6 +90,7 @@ void depth_image_callback(const sensor_msgs::ImageConstPtr& depth_img)
 /* imu */
 void imu_callback(const geometry_msgs::TransformStamped& g_imu)
 { 
+    LOG_MSG("/guidance/imu", g_imu, 3);
     printf( "frame_id: %s stamp: %d\n", g_imu.header.frame_id.c_str(), g_imu.header.stamp.sec );
     printf( "imu: [%f %f %f %f %f %f %f]\n", g_imu.transform.translation.x, g_imu.transform.translation.y, g_imu.transform.translation.z, 
 						g_imu.transform.rotation.x, g_imu.transform.rotation.y, g_imu.transform.rotation.z, g_imu.transform.rotation.w );
@@ -92,6 +99,7 @@ void imu_callback(const geometry_msgs::TransformStamped& g_imu)
 /* velocity */
 void velocity_callback(const geometry_msgs::Vector3Stamped& g_vo)
 { 
+    LOG_MSG("/guidance/velocity", g_vo, 1);
     printf( "frame_id: %s stamp: %d\n", g_vo.header.frame_id.c_str(), g_vo.header.stamp.sec );
     printf( "velocity: [%f %f %f]\n", g_vo.vector.x, g_vo.vector.y, g_vo.vector.z );
 }
@@ -99,6 +107,7 @@ void velocity_callback(const geometry_msgs::Vector3Stamped& g_vo)
 /* obstacle distance */
 void obstacle_distance_callback(const sensor_msgs::LaserScan& g_oa)
 { 
+    LOG_MSG("/guidance/obstacle_distance", g_oa, 1);
     printf( "frame_id: %s stamp: %d\n", g_oa.header.frame_id.c_str(), g_oa.header.stamp.sec );
     printf( "obstacle distance: [%f %f %f %f %f]\n", g_oa.ranges[0], g_oa.ranges[1], g_oa.ranges[2], g_oa.ranges[3], g_oa.ranges[4] );
 }
@@ -106,6 +115,7 @@ void obstacle_distance_callback(const sensor_msgs::LaserScan& g_oa)
 /* ultrasonic */
 void ultrasonic_callback(const sensor_msgs::LaserScan& g_ul)
 { 
+    LOG_MSG("/guidance/ultrasonic", g_ul, 1);
     printf( "frame_id: %s stamp: %d\n", g_ul.header.frame_id.c_str(), g_ul.header.stamp.sec );
     for (int i = 0; i < 5; i++)
         printf( "ultrasonic distance: [%f]  reliability: [%d]\n", g_ul.ranges[i], (int)g_ul.intensities[i] );
@@ -124,8 +134,20 @@ int main(int argc, char** argv)
     obstacle_distance_sub = my_node.subscribe("/guidance/obstacle_distance", 1, obstacle_distance_callback);
     ultrasonic_sub        = my_node.subscribe("/guidance/ultrasonic", 1, ultrasonic_callback);
 
+    bool start_logging = false;
+    ros::Time st = ros::Time::now();
     while (ros::ok())
         ros::spinOnce();
+
+    if (!start_logging)
+    {
+        ros::Duration dur = ros::Time::now() - st;
+        if (dur.toSec() > 30)
+        {
+            BagLogger::instance()->startLogging("GT",1);
+            start_logging = true;
+        }
+    }
 
     return 0;
 }
