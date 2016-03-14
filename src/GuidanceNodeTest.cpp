@@ -144,7 +144,7 @@ int main(int argc, char** argv)
         ros::Duration dur = ros::Time::now() - st;
         if (dur.toSec() > 30)
         {
-            BagLogger::instance()->startLogging("GT",1);
+            BagLogger::instance()->startLogging("GT",2);
             start_logging = true;
         }
     }
