@@ -218,7 +218,7 @@ int main(int argc, char** argv)
 			" 'm' to switch between AEC and constant exposure modes.\n\t"
 			" 'n' to return to default exposure mode and parameters.\n\t"
 			" 'q' to quit.");
-		return 0;
+//		return 0;
 	}
 	
     /* initialize ros */
