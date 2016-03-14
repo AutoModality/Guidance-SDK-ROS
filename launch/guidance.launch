@@ -1,0 +1,4 @@
+<launch>
+    <!-- <node pkg="GuidanceRos" type="GuidanceNode" name="GuidanceNode"/> -->
+</launch>
+<!-- TODO nodes, if launched, don't run somehow.  -->
