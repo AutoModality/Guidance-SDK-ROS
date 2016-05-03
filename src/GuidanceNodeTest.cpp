@@ -145,6 +145,7 @@ int main(int argc, char** argv)
 	position_sub = my_node.subscribe("/guidance/position", 1, position_callback);
 
     bool start_logging = false;
+    bool done_logging = false;
     ros::Time st = ros::Time::now();
     while (ros::ok())
         ros::spinOnce();
@@ -156,6 +157,18 @@ int main(int argc, char** argv)
         {
             BagLogger::instance()->startLogging("GT",2);
             start_logging = true;
+        }
+    }
+    else
+    {
+        if (!done_logging)
+        {
+            ros::Duration dur = ros::Time::now() - st;
+            if (dur.toSec() > 35)
+            {
+                BagLogger::instance()->stopLogging();
+                done_logging = true;
+            }
         }
     }
 
