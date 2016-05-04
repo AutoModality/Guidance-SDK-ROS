@@ -213,7 +213,7 @@ int main(int argc, char** argv)
     velocity_sub          = my_node.subscribe("/guidance/velocity", 1, velocity_callback);
     obstacle_distance_sub = my_node.subscribe("/guidance/obstacle_distance", 1, obstacle_distance_callback);
 	ultrasonic_sub = my_node.subscribe("/guidance/ultrasonic", 1, ultrasonic_callback);
-	position_sub = my_node.subscribe("/guidance/position", 1, position_callback);
+//	position_sub = my_node.subscribe("/guidance/position", 1, position_callback);
 	rc_channels_sub = my_node.subscribe<dji_sdk::RCChannels>("/dji_sdk/rc_channels", 10, djiRemoteCB);
 
     bool start_logging = false;
