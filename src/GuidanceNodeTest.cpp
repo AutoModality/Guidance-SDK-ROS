@@ -19,6 +19,7 @@
 #include <geometry_msgs/Vector3Stamped.h> //velocity
 #include <sensor_msgs/LaserScan.h> //obstacle distance && ultrasonic
 #include <bag_logger.h>
+#include <vb_main.h>
 
 BagLogger *BagLogger::s_instance_ = 0;
 
@@ -30,6 +31,8 @@ ros::Subscriber velocity_sub;
 ros::Subscriber obstacle_distance_sub;
 ros::Subscriber ultrasonic_sub;
 
+bool video_out = false;
+
 using namespace cv;
 #define WIDTH 320
 #define HEIGHT 240
@@ -37,7 +40,7 @@ using namespace cv;
 /* left greyscale image */
 void left_image_callback(const sensor_msgs::ImageConstPtr& left_img)
 {
-    LOG_MSG("/guidance/left_image", left_img, 3);
+    LOG_MSG("/guidance/left_image", left_img, 2);
     cv_bridge::CvImagePtr cv_ptr;
     try {
         cv_ptr = cv_bridge::toCvCopy(left_img, sensor_msgs::image_encodings::MONO8);
@@ -47,8 +50,11 @@ void left_image_callback(const sensor_msgs::ImageConstPtr& left_img)
         return;
     }
 
-    cv::imshow("left_image", cv_ptr->image);
-    cv::waitKey(1);
+    if (video_out)
+    {
+        cv::imshow("left_image", cv_ptr->image);
+        cv::waitKey(1);
+    }
 }
 
 /* right greyscale image */
@@ -64,8 +70,11 @@ void right_image_callback(const sensor_msgs::ImageConstPtr& right_img)
         return;
     }
 
-    cv::imshow("right_image", cv_ptr->image);
-    cv::waitKey(1);
+    if (video_out)
+    {
+        cv::imshow("right_image", cv_ptr->image);
+        cv::waitKey(1);
+    }
 }
 
 /* depth greyscale image */
@@ -81,18 +90,21 @@ void depth_image_callback(const sensor_msgs::ImageConstPtr& depth_img)
         return;
     }
 
-    cv::Mat depth8(HEIGHT, WIDTH, CV_8UC1);
-    cv_ptr->image.convertTo(depth8, CV_8UC1);
-    cv::imshow("depth_image", depth8);
-    cv::waitKey(1);
+    if (video_out)
+    {
+        cv::Mat depth8(HEIGHT, WIDTH, CV_8UC1);
+        cv_ptr->image.convertTo(depth8, CV_8UC1);
+        cv::imshow("depth_image", depth8);
+        cv::waitKey(1);
+    }
 }
 
 /* imu */
 void imu_callback(const geometry_msgs::TransformStamped& g_imu)
 { 
     LOG_MSG("/guidance/imu", g_imu, 3);
-    printf( "frame_id: %s stamp: %d\n", g_imu.header.frame_id.c_str(), g_imu.header.stamp.sec );
-    printf( "imu: [%f %f %f %f %f %f %f]\n", g_imu.transform.translation.x, g_imu.transform.translation.y, g_imu.transform.translation.z, 
+    //ROS_INFO_THROTTLE(2, "frame_id: %s stamp: %d", g_imu.header.frame_id.c_str(), g_imu.header.stamp.sec );
+    ROS_INFO_THROTTLE(2, "imu: [%f %f %f %f %f %f %f]", g_imu.transform.translation.x, g_imu.transform.translation.y, g_imu.transform.translation.z, 
 						g_imu.transform.rotation.x, g_imu.transform.rotation.y, g_imu.transform.rotation.z, g_imu.transform.rotation.w );
 }
 
@@ -100,25 +112,28 @@ void imu_callback(const geometry_msgs::TransformStamped& g_imu)
 void velocity_callback(const geometry_msgs::Vector3Stamped& g_vo)
 { 
     LOG_MSG("/guidance/velocity", g_vo, 1);
-    printf( "frame_id: %s stamp: %d\n", g_vo.header.frame_id.c_str(), g_vo.header.stamp.sec );
-    printf( "velocity: [%f %f %f]\n", g_vo.vector.x, g_vo.vector.y, g_vo.vector.z );
+    //ROS_INFO_THROTTLE(2, "frame_id: %s stamp: %d", g_vo.header.frame_id.c_str(), g_vo.header.stamp.sec );
+    ROS_INFO_THROTTLE(2, "velocity: [%f %f %f]", g_vo.vector.x, g_vo.vector.y, g_vo.vector.z );
 }
 
 /* obstacle distance */
 void obstacle_distance_callback(const sensor_msgs::LaserScan& g_oa)
 { 
     LOG_MSG("/guidance/obstacle_distance", g_oa, 1);
-    printf( "frame_id: %s stamp: %d\n", g_oa.header.frame_id.c_str(), g_oa.header.stamp.sec );
-    printf( "obstacle distance: [%f %f %f %f %f]\n", g_oa.ranges[0], g_oa.ranges[1], g_oa.ranges[2], g_oa.ranges[3], g_oa.ranges[4] );
+    //ROS_INFO_THROTTLE(2, "frame_id: %s stamp: %d", g_oa.header.frame_id.c_str(), g_oa.header.stamp.sec );
+    ROS_INFO_THROTTLE(2, "obstacle distance: [%f %f %f %f %f]\n", g_oa.ranges[0], g_oa.ranges[1], g_oa.ranges[2], g_oa.ranges[3], g_oa.ranges[4] );
 }
-
 /* ultrasonic */
 void ultrasonic_callback(const sensor_msgs::LaserScan& g_ul)
 { 
     LOG_MSG("/guidance/ultrasonic", g_ul, 1);
-    printf( "frame_id: %s stamp: %d\n", g_ul.header.frame_id.c_str(), g_ul.header.stamp.sec );
-    for (int i = 0; i < 5; i++)
-        printf( "ultrasonic distance: [%f]  reliability: [%d]\n", g_ul.ranges[i], (int)g_ul.intensities[i] );
+    //ROS_INFO_THROTTLE(2, "frame_id: %s stamp: %d", g_ul.header.frame_id.c_str(), g_ul.header.stamp.sec );
+    ROS_INFO_THROTTLE(2, "ultrasonic distance: [%f : %d] [%f : %d] [%f : %d] [%f : %d] [%f : %d] ", 
+	     g_ul.ranges[0], (int)g_ul.intensities[0],
+	     g_ul.ranges[1], (int)g_ul.intensities[1],
+	     g_ul.ranges[2], (int)g_ul.intensities[2],
+	     g_ul.ranges[3], (int)g_ul.intensities[3],
+	     g_ul.ranges[4], (int)g_ul.intensities[4]);
 }
 
 int main(int argc, char** argv)
@@ -136,18 +151,83 @@ int main(int argc, char** argv)
 
     bool start_logging = false;
     ros::Time st = ros::Time::now();
-    while (ros::ok())
+#if 0
+    while (ros::ok()) {
         ros::spinOnce();
 
-    if (!start_logging)
-    {
-        ros::Duration dur = ros::Time::now() - st;
-        if (dur.toSec() > 30)
+        if (!start_logging)
         {
-            BagLogger::instance()->startLogging("GT",2);
-            start_logging = true;
+            ros::Duration dur = ros::Time::now() - st;
+            if (dur.toSec() > 10)
+            {
+                ROS_INFO("STARTING TO LOG DATA");		
+                BagLogger::instance()->startLogging("GT",2);
+                start_logging = true;
+            }
         }
     }
+#endif
+
+	if (my_node.hasParam("video"))
+	{
+            ROS_INFO("VIDEO OUTPUT ENABLED");
+	    video_out = true;
+	}
+        else
+	{
+            ROS_INFO("VIDEO OUTPUT DISABLED");
+	    video_out = false;
+	}
+        
+
+	//    bool debug_on = userInputEnabled(my_node);
+    bool debug_on = true;
+
+	if (!debug_on)
+	{
+		ros::spin();
+	}
+	else
+	{
+		changemode(1);
+
+		ros::Rate loop_rate(10);
+
+		while (ros::ok())
+		{
+			// get the next event from the keyboard
+			while(kbhit())
+			{
+				int c = getchar();
+
+				switch (c)
+				{
+				case 'O':
+				case 'o':
+                			ROS_INFO("LOGGING ON");		
+                			BagLogger::instance()->startLogging("GT",2);
+					break;
+				case 'F':
+				case 'f':
+                			ROS_INFO("LOGGING OFF");		
+                			BagLogger::instance()->stopLogging();
+					break;
+				case 'h':
+					printf("GUIDANCE TEST\n");
+					printf("o - logging on\n");
+					printf("f - logging off\n");
+					break;
+				}
+
+			}
+
+		    ros::spinOnce();
+
+		    loop_rate.sleep();
+		}
+
+		changemode(0);
+	}
 
     return 0;
 }

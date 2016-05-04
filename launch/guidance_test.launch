@@ -1,5 +1,7 @@
 <launch>
     <node pkg="guidance" type="guidanceNode" name="guidanceNode" output="screen"/>
-    <node pkg="guidance" type="guidanceNodeTest" name="guidanceNodeTest" output="screen"/>
+    <node pkg="guidance" type="guidanceNodeTest" name="guidanceNodeTest" output="screen">
+        <param name="video" value="on"/>
+    </node>
 </launch>
 <!-- TODO nodes, if launched, don't run somehow.  -->
