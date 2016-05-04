@@ -15,6 +15,8 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
+#include <dji_sdk/RCChannels.h>
+
 #include <geometry_msgs/TransformStamped.h> //IMU
 #include <geometry_msgs/Vector3Stamped.h> //velocity
 #include <sensor_msgs/LaserScan.h> //obstacle distance && ultrasonic
@@ -31,6 +33,7 @@ ros::Subscriber velocity_sub;
 ros::Subscriber obstacle_distance_sub;
 ros::Subscriber ultrasonic_sub;
 ros::Subscriber position_sub;
+ros::Subscriber rc_channels_sub;
 
 bool video_out = false;
 
@@ -145,6 +148,59 @@ void position_callback(const geometry_msgs::Vector3Stamped& g_pos)
 		printf("global position: [%f %f %f]\n", g_pos.vector.x, g_pos.vector.y, g_pos.vector.z);
 }
 
+enum class DJI_RC_MODE {POS=0, ALT, API};
+enum class DJI_RC_GEAR {UP=0, DOWN, UNKNOWN};
+DJI_RC_MODE rc_mode_ {DJI_RC_MODE::POS};
+DJI_RC_GEAR rc_gear_ {DJI_RC_GEAR::UNKNOWN};
+
+void djiRemoteCB(const dji_sdk::RCChannels::ConstPtr&  msg) {
+    if (msg->mode < -10)
+    {
+        if (rc_mode_ != DJI_RC_MODE::POS)
+        {
+            ROS_INFO("GTN: CHANGING TO POS MODE");
+        }
+        rc_mode_ = DJI_RC_MODE::POS;
+    }
+    else if (msg->mode == 0)
+    {
+        if (rc_mode_ != DJI_RC_MODE::ALT)
+        {
+            ROS_INFO("GTN: CHANGING TO ALT MODE");
+        }
+       rc_mode_ = DJI_RC_MODE::ALT;
+    }
+    else
+    {
+        if (rc_mode_ != DJI_RC_MODE::API)
+        {
+            ROS_INFO("GTN: CHANGING TO API MODE");
+        }
+        rc_mode_ = DJI_RC_MODE::API;
+    }
+
+    if (msg->gear < -6000)
+    {
+        // gear switch up
+        if (rc_gear_ == DJI_RC_GEAR::DOWN)
+        {
+            ROS_INFO("GTN: CHANGING GEAR UP, START LOGGING");
+            BagLogger::instance()->startLogging("GT",2);
+        }
+        rc_gear_ = DJI_RC_GEAR::UP;
+    }
+    else
+    {
+        // gear switch down
+        if (rc_gear_ == DJI_RC_GEAR::UP)
+        {
+            ROS_INFO("GTN: CHANGING GEAR DOWN, STOP LOGGING");
+            BagLogger::instance()->stopLogging();
+        }
+        rc_gear_ = DJI_RC_GEAR::DOWN;
+    }
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "GuidanceNodeTest");
@@ -158,25 +214,10 @@ int main(int argc, char** argv)
     obstacle_distance_sub = my_node.subscribe("/guidance/obstacle_distance", 1, obstacle_distance_callback);
 	ultrasonic_sub = my_node.subscribe("/guidance/ultrasonic", 1, ultrasonic_callback);
 	position_sub = my_node.subscribe("/guidance/position", 1, position_callback);
+	rc_channels_sub = my_node.subscribe<dji_sdk::RCChannels>("/dji_sdk/rc_channels", 10, djiRemoteCB);
 
     bool start_logging = false;
     ros::Time st = ros::Time::now();
-#if 0
-    while (ros::ok()) {
-        ros::spinOnce();
-
-        if (!start_logging)
-        {
-            ros::Duration dur = ros::Time::now() - st;
-            if (dur.toSec() > 10)
-            {
-                ROS_INFO("STARTING TO LOG DATA");		
-                BagLogger::instance()->startLogging("GT",2);
-                start_logging = true;
-            }
-        }
-    }
-#endif
 
 	if (my_node.hasParam("video"))
 	{
@@ -190,8 +231,8 @@ int main(int argc, char** argv)
 	}
         
 
-	//    bool debug_on = userInputEnabled(my_node);
-    bool debug_on = true;
+	bool debug_on = userInputEnabled(my_node);
+	ROS_INFO("GTN: USER INPUT %s", debug_on ? "ENABLED" : "DISABLED");
 
 	if (!debug_on)
 	{
