@@ -8,11 +8,13 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   rosbag
+  dji_sdk
 )
 find_package(OpenCV REQUIRED)
 
 catkin_package(
-)
+    INCLUDE_DIRS include
+    CATKIN_DEPENDS dji_sdk)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
@@ -48,3 +50,8 @@ add_executable(guidanceNodeCalibration ${PROJECT_SOURCE_DIR}/src/GuidanceNodeCal
 target_link_libraries(guidanceNode DJI_guidance usb-1.0 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 target_link_libraries(guidanceNodeTest ${catkin_LIBRARIES} ${OpenCV_LIBS})
 target_link_libraries(guidanceNodeCalibration DJI_guidance usb-1.0 yaml-cpp ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+add_dependencies(guidanceNode ${catkin_EXPORTED_TARGETS})
+add_dependencies(guidanceNodeTest ${catkin_EXPORTED_TARGETS})
+add_dependencies(guidanceNodeCalibration ${catkin_EXPORTED_TARGETS})
+
