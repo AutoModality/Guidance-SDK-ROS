@@ -18,10 +18,13 @@
 #include "DJI_guidance.h"
 #include "DJI_utility.h"
 #include <bag_logger.h>
+#include <dji_sdk/LogControl.h>
 
 #include <geometry_msgs/TransformStamped.h> //IMU
 #include <geometry_msgs/Vector3Stamped.h> //velocity
 #include <sensor_msgs/LaserScan.h> //obstacle distance & ultrasonic
+
+BagLogger *BagLogger::s_instance_ = 0;
 
 ros::Publisher depth_image_pub;
 ros::Publisher left_image_pub;
@@ -31,6 +34,7 @@ ros::Publisher obstacle_distance_pub;
 ros::Publisher velocity_pub;
 ros::Publisher ultrasonic_pub;
 ros::Publisher position_pub;
+ros::Subscriber bag_logger_sub;
 
 using namespace cv;
 
@@ -91,7 +95,10 @@ int my_callback(int data_type, int data_len, char *content)
 			left_8.header.frame_id  = "guidance";
 			left_8.header.stamp	= ros::Time::now();
 			left_8.encoding		= sensor_msgs::image_encodings::MONO8;
-			left_image_pub.publish(left_8.toImageMsg());
+            sensor_msgs::ImagePtr img = left_8.toImageMsg();
+            LOG_MSG("/guidance/left_image", img, 2);
+            left_image_pub.publish(img);
+//            left_image_pub.publish(left_8.toImageMsg());
 		}
 		if ( data->m_greyscale_image_right[CAMERA_ID] ){
 			memcpy(g_greyscale_image_right.data, data->m_greyscale_image_right[CAMERA_ID], IMAGE_SIZE);
@@ -102,7 +109,10 @@ int my_callback(int data_type, int data_len, char *content)
 			right_8.header.frame_id  = "guidance";
 			right_8.header.stamp	 = ros::Time::now();
 			right_8.encoding  	 = sensor_msgs::image_encodings::MONO8;
-			right_image_pub.publish(right_8.toImageMsg());
+            sensor_msgs::ImagePtr img = right_8.toImageMsg();
+            LOG_MSG("/guidance/right_image", img, 2);
+            right_image_pub.publish(img);
+//            right_image_pub.publish(right_8.toImageMsg());
 		}
 		if ( data->m_depth_image[CAMERA_ID] ){
 			memcpy(g_depth.data, data->m_depth_image[CAMERA_ID], IMAGE_SIZE * 2);
@@ -114,7 +124,10 @@ int my_callback(int data_type, int data_len, char *content)
 			depth_16.header.frame_id  = "guidance";
 			depth_16.header.stamp	  = ros::Time::now();
 			depth_16.encoding	  = sensor_msgs::image_encodings::MONO16;
-			depth_image_pub.publish(depth_16.toImageMsg());
+			sensor_msgs::ImagePtr img = depth_16.toImageMsg();
+			LOG_MSG("/guidance/depth_image", img, 1);
+            depth_image_pub.publish(img);
+//            depth_image_pub.publish(depth_16.toImageMsg());
 		}
 		
         //key = waitKey(1);
@@ -138,6 +151,7 @@ int my_callback(int data_type, int data_len, char *content)
 		g_imu.transform.rotation.x = imu_data->q[1];
 		g_imu.transform.rotation.y = imu_data->q[2];
 		g_imu.transform.rotation.z = imu_data->q[3];
+        LOG_MSG("/guidance/imu", g_imu, 3);
 		imu_pub.publish(g_imu);
     }
     /* velocity */
@@ -154,6 +168,7 @@ int my_callback(int data_type, int data_len, char *content)
 		g_vo.vector.x = 0.001f * vo->vx;
 		g_vo.vector.y = 0.001f * vo->vy;
 		g_vo.vector.z = 0.001f * vo->vz;
+        LOG_MSG("/guidance/velocity", g_vo, 3);
 		velocity_pub.publish(g_vo);
     }
 
@@ -176,6 +191,7 @@ int my_callback(int data_type, int data_len, char *content)
 		g_oa.header.stamp    = ros::Time::now();
 		for ( int i = 0; i < CAMERA_PAIR_NUM; ++i )
 			g_oa.ranges[i] = 0.01f * oa->distance[i];
+        LOG_MSG("/guidance/obstacle_distance", g_oa, 1);
 		obstacle_distance_pub.publish(g_oa);
 	}
 
@@ -199,6 +215,7 @@ int my_callback(int data_type, int data_len, char *content)
 			g_ul.ranges[d] = 0.001f * ultrasonic->ultrasonic[d];
 			g_ul.intensities[d] = 1.0 * ultrasonic->reliability[d];
 		}
+        LOG_MSG("/guidance/ultrasonic", g_ul, 1);
 		ultrasonic_pub.publish(g_ul);
     }
 	
@@ -221,6 +238,19 @@ int my_callback(int data_type, int data_len, char *content)
     g_event.set_event();
 
     return 0;
+}
+
+void logControlCB(const dji_sdk::LogControl::ConstPtr& msg)
+{
+    ROS_INFO("GUIDANCE: STARTING THE LOGGER TO %s, level %d", msg->name.c_str(), msg->level);
+    if (msg->enable)
+    {
+        BagLogger::instance()->startLogging(msg->name, msg->level);
+    }
+    else
+    {
+        BagLogger::instance()->stopLogging();
+    }
 }
 
 #define RETURN_IF_ERR(err_code) { if( err_code ){ release_transfer(); \
@@ -249,6 +279,7 @@ int main(int argc, char** argv)
     obstacle_distance_pub	= my_node.advertise<sensor_msgs::LaserScan>("/guidance/obstacle_distance",1);
 	ultrasonic_pub			= my_node.advertise<sensor_msgs::LaserScan>("/guidance/ultrasonic", 1);
 	position_pub			= my_node.advertise<sensor_msgs::LaserScan>("/guidance/position", 1);
+	bag_logger_sub = my_node.subscribe<dji_sdk::LogControl>("/guidance/log_control", 10, logControlCB);
 
     /* initialize guidance */
     reset_config();
@@ -364,3 +395,4 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
