@@ -322,13 +322,6 @@ int main(int argc, char** argv)
 	}
 	
     /* select data */
-	stereo_cali params[CAMERA_PAIR_NUM];
-	err_code = get_stereo_cali(params);
-	RETURN_IF_ERR(err_code);
-	ROS_INFO_STREAM("front: b=" << params[e_vbus1].baseline << ",u=" << params[e_vbus1].cu  <<
-			",v=" << params[e_vbus1].cv<< ",f=" << params[e_vbus1].focal);
-	ROS_INFO_STREAM("down: b=" << params[e_vbus5].baseline << ",u=" << params[e_vbus5].cu  <<
-			",v=" << params[e_vbus5].cv<< ",f=" << params[e_vbus5].focal);
 	err_code = set_image_frequecy(e_frequecy_10);
 	RETURN_IF_ERR(err_code);
     err_code = select_greyscale_image(e_vbus1, true);
