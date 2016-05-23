@@ -27,6 +27,7 @@
 BagLogger *BagLogger::s_instance_ = 0;
 
 ros::Publisher depth_image_pub;
+ros::Publisher depth_image_front_pub;
 ros::Publisher left_image_pub;
 ros::Publisher right_image_pub;
 ros::Publisher imu_pub;
@@ -127,6 +128,21 @@ int my_callback(int data_type, int data_len, char *content)
 			sensor_msgs::ImagePtr img = depth_16.toImageMsg();
 			LOG_MSG("/guidance/depth_image", img, 1);
             depth_image_pub.publish(img);
+//            depth_image_pub.publish(depth_16.toImageMsg());
+		}
+		if ( data->m_depth_image[e_vbus1] ){
+			memcpy(g_depth.data, data->m_depth_image[e_vbus1], IMAGE_SIZE * 2);
+			//g_depth.convertTo(depth8, CV_8UC1);
+			//imshow("depth", depth8);
+			//publish depth image
+			cv_bridge::CvImage depth_16;
+			g_depth.copyTo(depth_16.image);
+			depth_16.header.frame_id  = "guidance";
+			depth_16.header.stamp	  = ros::Time::now();
+			depth_16.encoding	  = sensor_msgs::image_encodings::MONO16;
+			sensor_msgs::ImagePtr img = depth_16.toImageMsg();
+			LOG_MSG("/guidance/depth_image_front", img, 1);
+            depth_image_front_pub.publish(img);
 //            depth_image_pub.publish(depth_16.toImageMsg());
 		}
 		
@@ -272,6 +288,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "GuidanceNode");
     ros::NodeHandle my_node;
     depth_image_pub			= my_node.advertise<sensor_msgs::Image>("/guidance/depth_image",1);
+    depth_image_front_pub	= my_node.advertise<sensor_msgs::Image>("/guidance/depth_image_front",1);
     left_image_pub			= my_node.advertise<sensor_msgs::Image>("/guidance/left_image",1);
     right_image_pub			= my_node.advertise<sensor_msgs::Image>("/guidance/right_image",1);
     imu_pub  				= my_node.advertise<geometry_msgs::TransformStamped>("/guidance/imu",1);
