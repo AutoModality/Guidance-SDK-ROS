@@ -274,11 +274,15 @@ int main(int argc, char** argv)
 	}
 	
     /* select data */
-    err_code = select_greyscale_image(CAMERA_ID, true);
+	err_code = set_image_frequecy(e_frequecy_10);
 	RETURN_IF_ERR(err_code);
-    err_code = select_greyscale_image(CAMERA_ID, false);
+    err_code = select_greyscale_image(e_vbus1, true);
 	RETURN_IF_ERR(err_code);
-    err_code = select_depth_image(CAMERA_ID);
+    err_code = select_greyscale_image(e_vbus5, true);
+	RETURN_IF_ERR(err_code);
+    err_code = select_depth_image(e_vbus1);
+	RETURN_IF_ERR(err_code);
+    err_code = select_depth_image(e_vbus5);
 	RETURN_IF_ERR(err_code);
     select_imu();
     select_ultrasonic();
