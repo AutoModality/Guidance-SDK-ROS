@@ -120,24 +120,49 @@ void velocity_callback(const geometry_msgs::Vector3Stamped& g_vo)
     ROS_INFO_THROTTLE(2, "velocity: [%f %f %f]", g_vo.vector.x, g_vo.vector.y, g_vo.vector.z );
 }
 
+double ob_range[5];
+int ul_intensity[5];
+double ul_range[5];
+ros::Time stamp;
+
+void print_Ul_OBS() {
+    ROS_INFO_THROTTLE(1, "ul:int:obs D[%05.3f : %d : %05.3f] F[%05.3f : %d : %05.3f] R[%05.3f : %d : %05.3f] B[%05.3f : %d : %05.3f] L[%05.3f : %d : %05.3f] ",
+         ul_range[0], ul_intensity[0], ob_range[0],
+         ul_range[1], ul_intensity[1], ob_range[1],
+         ul_range[2], ul_intensity[2], ob_range[2],
+         ul_range[3], ul_intensity[3], ob_range[3],
+         ul_range[4], ul_intensity[4], ob_range[4]);
+}
+
 /* obstacle distance */
 void obstacle_distance_callback(const sensor_msgs::LaserScan& g_oa)
-{ 
+{
+    for (int i = 0; i < 5; i++)
+    {
+        ob_range[i] = g_oa.ranges[i];
+    }
     LOG_MSG("/guidance/obstacle_distance", g_oa, 1);
     //ROS_INFO_THROTTLE(2, "frame_id: %s stamp: %d", g_oa.header.frame_id.c_str(), g_oa.header.stamp.sec );
-    ROS_INFO_THROTTLE(2, "obstacle distance: [%f %f %f %f %f]\n", g_oa.ranges[0], g_oa.ranges[1], g_oa.ranges[2], g_oa.ranges[3], g_oa.ranges[4] );
+//    ROS_INFO_THROTTLE(2, "obstacle distance: [%f %f %f %f %f]\n", g_oa.ranges[0], g_oa.ranges[1], g_oa.ranges[2], g_oa.ranges[3], g_oa.ranges[4] );
 }
 /* ultrasonic */
 void ultrasonic_callback(const sensor_msgs::LaserScan& g_ul)
 { 
+    for (int i = 0; i < 5; i++)
+    {
+        ul_range[i] = g_ul.ranges[i];
+        ul_intensity[i] = (int)g_ul.intensities[i];
+    }
     LOG_MSG("/guidance/ultrasonic", g_ul, 1);
     //ROS_INFO_THROTTLE(2, "frame_id: %s stamp: %d", g_ul.header.frame_id.c_str(), g_ul.header.stamp.sec );
-    ROS_INFO_THROTTLE(2, "ultrasonic distance: [%f : %d] [%f : %d] [%f : %d] [%f : %d] [%f : %d] ", 
-	     g_ul.ranges[0], (int)g_ul.intensities[0],
-	     g_ul.ranges[1], (int)g_ul.intensities[1],
-	     g_ul.ranges[2], (int)g_ul.intensities[2],
-	     g_ul.ranges[3], (int)g_ul.intensities[3],
-	     g_ul.ranges[4], (int)g_ul.intensities[4]);
+
+//    ROS_INFO_THROTTLE(2, "ultrasonic distance: [%f : %d] [%f : %d] [%f : %d] [%f : %d] [%f : %d] ",
+//            g_ul.ranges[0], (int)g_ul.intensities[0],
+//            g_ul.ranges[1], (int)g_ul.intensities[1],
+//            g_ul.ranges[2], (int)g_ul.intensities[2],
+//            g_ul.ranges[3], (int)g_ul.intensities[3],
+//            g_ul.ranges[4], (int)g_ul.intensities[4]);
+    print_Ul_OBS();
 }
 
 /* motion */
@@ -206,11 +231,11 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "GuidanceNodeTest");
     ros::NodeHandle my_node;
 
-    left_image_sub        = my_node.subscribe("/guidance/left_image",  10, left_image_callback);
-    right_image_sub       = my_node.subscribe("/guidance/right_image", 10, right_image_callback);
-    depth_image_sub       = my_node.subscribe("/guidance/depth_image", 10, depth_image_callback);
-    imu_sub               = my_node.subscribe("/guidance/imu", 1, imu_callback);
-    velocity_sub          = my_node.subscribe("/guidance/velocity", 1, velocity_callback);
+//    left_image_sub        = my_node.subscribe("/guidance/left_image",  10, left_image_callback);
+//    right_image_sub       = my_node.subscribe("/guidance/right_image", 10, right_image_callback);
+//    depth_image_sub       = my_node.subscribe("/guidance/depth_image", 10, depth_image_callback);
+//    imu_sub               = my_node.subscribe("/guidance/imu", 1, imu_callback);
+//    velocity_sub          = my_node.subscribe("/guidance/velocity", 1, velocity_callback);
     obstacle_distance_sub = my_node.subscribe("/guidance/obstacle_distance", 1, obstacle_distance_callback);
 	ultrasonic_sub = my_node.subscribe("/guidance/ultrasonic", 1, ultrasonic_callback);
 //	position_sub = my_node.subscribe("/guidance/position", 1, position_callback);

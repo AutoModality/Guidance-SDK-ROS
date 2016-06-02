@@ -44,8 +44,8 @@ int HEIGHT=240;
 #define IMAGE_SIZE (HEIGHT * WIDTH)
 
 char        	key       = 0;
-//e_vbus_index	CAMERA_ID = e_vbus1;
-e_vbus_index	CAMERA_ID = e_vbus5;
+e_vbus_index	CAMERA_ID = e_vbus1;  // front
+//e_vbus_index	CAMERA_ID = e_vbus5;  // down
 DJI_lock        g_lock;
 DJI_event       g_event;
 Mat             g_greyscale_image_left(HEIGHT, WIDTH, CV_8UC1);
@@ -81,6 +81,8 @@ std::ostream& operator<<(std::ostream& out, const e_sdk_err_code value){
 int my_callback(int data_type, int data_len, char *content)
 {
     g_lock.enter();
+
+    ros::Time stamp = ros::Time::now();
 
     /* image data */
     if (e_image == data_type && NULL != content)
@@ -159,7 +161,8 @@ int my_callback(int data_type, int data_len, char *content)
     	// publish imu data
 		geometry_msgs::TransformStamped g_imu;
 		g_imu.header.frame_id = "guidance";
-		g_imu.header.stamp    = ros::Time::now();
+        g_imu.header.stamp    = stamp;
+//        g_imu.header.stamp    = ros::Time::now();
 		g_imu.transform.translation.x = imu_data->acc_x;
 		g_imu.transform.translation.y = imu_data->acc_y;
 		g_imu.transform.translation.z = imu_data->acc_z;
@@ -180,7 +183,8 @@ int my_callback(int data_type, int data_len, char *content)
 		// publish velocity
 		geometry_msgs::Vector3Stamped g_vo;
 		g_vo.header.frame_id = "guidance";
-		g_vo.header.stamp    = ros::Time::now();
+//        g_vo.header.stamp    = ros::Time::now();
+        g_vo.header.stamp    = stamp;
 		g_vo.vector.x = 0.001f * vo->vx;
 		g_vo.vector.y = 0.001f * vo->vy;
 		g_vo.vector.z = 0.001f * vo->vz;
@@ -204,7 +208,8 @@ int my_callback(int data_type, int data_len, char *content)
 		sensor_msgs::LaserScan g_oa;
 		g_oa.ranges.resize(CAMERA_PAIR_NUM);
 		g_oa.header.frame_id = "guidance";
-		g_oa.header.stamp    = ros::Time::now();
+//        g_oa.header.stamp    = ros::Time::now();
+        g_oa.header.stamp    = stamp;
 		for ( int i = 0; i < CAMERA_PAIR_NUM; ++i )
 			g_oa.ranges[i] = 0.01f * oa->distance[i];
         LOG_MSG("/guidance/obstacle_distance", g_oa, 1);
@@ -226,7 +231,8 @@ int my_callback(int data_type, int data_len, char *content)
 		g_ul.ranges.resize(CAMERA_PAIR_NUM);
 		g_ul.intensities.resize(CAMERA_PAIR_NUM);
 		g_ul.header.frame_id = "guidance";
-		g_ul.header.stamp    = ros::Time::now();
+//        g_ul.header.stamp    = ros::Time::now();
+        g_ul.header.stamp    = stamp;
 		for ( int d = 0; d < CAMERA_PAIR_NUM; ++d ){
 			g_ul.ranges[d] = 0.001f * ultrasonic->ultrasonic[d];
 			g_ul.intensities[d] = 1.0 * ultrasonic->reliability[d];
@@ -243,7 +249,8 @@ int my_callback(int data_type, int data_len, char *content)
 		// publish position
 		geometry_msgs::Vector3Stamped g_pos;
 		g_pos.header.frame_id = "guidance";
-		g_pos.header.stamp = ros::Time::now();
+//        g_pos.header.stamp = ros::Time::now();
+        g_pos.header.stamp = stamp;
 		g_pos.vector.x = m->position_in_global_x;
 		g_pos.vector.y = m->position_in_global_y;
 		g_pos.vector.z = m->position_in_global_z;
